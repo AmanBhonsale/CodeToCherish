@@ -1,0 +1,68 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  passwordHash  String
+  fullName      String?
+  googleId      String?   @unique
+  createdAt     DateTime  @default(now())
+  lastLogin     DateTime?
+
+  reviewsOwned  Review[]  @relation("ReviewOwner")
+  reviewMemberships ReviewMember[]
+
+  @@map("users")
+}
+
+model Review {
+  id                String    @id @default(cuid())
+  title             String
+  reviewType        String?
+  questionType      String?
+  areaOfResearch    String?
+  createdAt         DateTime  @default(now())
+  // settings       Json? // We'll add this later if complex, or as individual fields
+
+  ownerId           String
+  owner             User      @relation("ReviewOwner", fields: [ownerId], references: [id])
+
+  members           ReviewMember[]
+  // articles       Article[] // To be added later
+
+  @@map("reviews")
+}
+
+enum Role {
+  OWNER
+  COLLABORATOR
+  REVIEWER
+}
+
+model ReviewMember {
+  id        String   @id @default(cuid())
+  addedAt   DateTime @default(now())
+
+  reviewId  String
+  review    Review   @relation(fields: [reviewId], references: [id])
+
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+
+  role      Role
+
+  @@unique([reviewId, userId]) // A user can only have one role per review
+  @@map("review_members")
+}
+
+// TODO: Add other models like Article, Decision, etc., in subsequent steps.
